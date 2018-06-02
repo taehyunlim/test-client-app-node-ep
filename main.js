@@ -5,7 +5,7 @@ const opn = require('opn');
 const api = new EasyPost(configs.apiKey);
 
 // Hardcoded string vars
-const mainManu = ['address', 'shipment', 'tracker', 'parcel'];
+const mainManu = ['address', 'shipment', 'tracker', 'parcel', 'customs'];
 const addressInput = [
   {field:'name', default: 'Tae Home'},
   {field: 'street1', default: '5404 Heatrland Drive'},
@@ -22,6 +22,23 @@ const parcelInput = [
   {field: 'height', default: 15},
   {field: 'weight', default: 15}
 ];
+const customsInfoInput = [
+  {field:'eel_pfc', default: 'NOEEI 30.37(a)'},
+  {field: 'contents_type', default: 'merchandise'},
+  {field: 'restriction_type', default: 'none'},
+  {field: 'customs_certify', default: true},
+  {field: 'customs_signer', default: 'TL'},
+];
+const customsItemInput = [
+  {field:'description', default: 'Generic merchandise'},
+  {field: 'quantity', default: 1},
+  {field: 'value', default: 10},
+  {field: 'quantity', default: 1},
+  {field: 'weight', default: 5},
+  {field: 'hs_tariff_number', default: '123456'},
+  {field: 'origin_country', default: 'us'}
+]
+// Stored values for public IDs
 const carrierAccounts = [
   {name: 'USPS (EP Support)', id: 'ca_c08beb7d8abf458a8bba7ac3742439cb'},
   {name: 'UPS (EP Support)', id: 'ca_e35cc2f45bf743b899a580caf45a6063'},
@@ -36,10 +53,15 @@ const addrArray = [
 const parcelArray = [
   {name: '30/30/30/30', id: 'prcl_1fc93fe8bd5c4a2885944af6156b18a5'},
   {name: '10/10/10/1', id: 'prcl_c0947ff787ad4ccc837107a975a71675'},
+  {name: '15/15/15/300', id: 'prcl_2d53a539b0854c1b98ec126363354614'}
 ];
 const trackerArray = [
   {name: 'Test Tracker', id: 'trk_370effe60fc3434787915b3521988e73'}
 ];
+const customsInfoArray = [
+  {name: 'Test Customs Info - TShirts 123456', id: 'cstinfo_b3fd61b07d4649288ea239bad4a553b5'},
+  {name: 'Test Customs Info - GenericMerchandise 7891011', id: 'cstinfo_46ba28d3d00c46189799699d8cb56dab'},
+]
 
 //  Declare empty vars globally
 let currentMenu = '';
@@ -148,6 +170,7 @@ function prc() {
 function shp() {
   return new Promise((resolve, reject) => {
     currentMenu = 'shipment';
+    let intl = false;
     let resultsArray = [];
 
     listPrompt(addrArray, 'from_address')
@@ -155,13 +178,28 @@ function shp() {
       resultsArray.push(result);
       return listPrompt(addrArray, 'to_address');
     }).then(result => {
+      // Ask if to_address is domestic or international
+      inquirer.prompt([{
+        type: 'list',
+        name: 'intl',
+        choices: ["domestic", "international"],
+        message: "[shipment] Is the to_address: "
+      }]).then(answer => {
+        if (answer.intl === 'international') {
+          intl = true;
+        }
+      })
       resultsArray.push(result);
       return listPrompt(parcelArray, 'parcel');
+    }).then(result => {
+      resultsArray.push(result);
+      return listPrompt(customsInfoArray, 'customsInfo');
     }).then(result => {
       resultsArray.push(result);
       shpInput['from_address'] = { id: resultsArray[0]['id'] };
       shpInput['to_address'] = { id: resultsArray[1]['id'] };
       shpInput['parcel'] = { id: resultsArray[2]['id'] };
+      shpInput['customs_info'] = { id: resultsArray[3]['id'] };
       let shipment = new api.Shipment(shpInput);
       return shipment.save();
     }).then(shp => {
@@ -206,6 +244,24 @@ function shp() {
   });
 }
 
+function cstinfo() {
+  return new Promise((resolve, reject) => {
+    let cstInfoData = {};
+    inputPrompt(customsInfoInput, 'customsInfo')
+    .then(body => {
+      cstInfoData = body;
+      return inputPrompt(customsItemInput, 'customsItem')
+    }).then(body => {
+      cstInfoData['customs_items'] = [
+        new api.CustomsItem(body)
+      ];
+      let customsInfo = new api.CustomsInfo(cstInfoData);
+      return customsInfo.save();
+    }).then(cstinfo => {
+      resolve(cstinfo.id);
+    }).catch(e => { if (e) throw e });
+  })
+}
 
 
 function main() {
@@ -224,6 +280,9 @@ function main() {
         break;
       case 'shipment':
         return shp();
+        break;
+      case 'customs':
+        return cstinfo();
         break;
     }
   }).then(result => {
