@@ -44,11 +44,34 @@ const carrierAccounts = [
   {name: 'UPS (EP Support)', id: 'ca_e35cc2f45bf743b899a580caf45a6063'},
   {name: 'FedEx (Tae)', id: 'ca_a92788837eb54764b6cf3fe79f86748c'},
   {name: 'UPS (Tae)', id: 'ca_921780b836c14100bdc991261d9fca6e'},
+  {name: 'Aramex (EP Support - TEST)', id: 'ca_78e33f49cb0d4ef38ba20e04c6c25b34'},
 ];
 const addrArray = [
   {name: 'Tae Home', id: 'adr_43768bb693804629bad3e2f8190e4a47'},
   {name: 'Tae EP', id: 'adr_5cf8cddb7cc545799abf66690ec4beee'},
-  {name: 'Canada Address 1', id: 'adr_c2e38e2d67b74adbb8ac3b073e80dce5'}
+  {name: 'Canada Address 1', id: 'adr_c2e38e2d67b74adbb8ac3b073e80dce5'},
+  {name: 'LaserShip To', id: 'adr_25bf6ada9a3d451f999d6f8c4270ddfd'},
+  {name: 'LaserShip From', id: 'adr_0289d784189d470ea013594bf7b9d041'},
+  {
+    name: 'Aramex ZA (To)',
+    street1: "417 Montgomery Street",
+    street2: "5th Floor",
+    city: "San Francisco",
+    state: "CA",
+    zip: "94104",
+    country: "US",
+    phone: "4153334444",
+  },
+  {
+    name: 'Aramex ZA (From)',
+    street1: "154 Campground Rd",
+    street2: '',
+    city: "Cape Town",
+    state: '',
+    zip: "7700",
+    country: "ZA",
+    phone: '',
+  },
 ];
 const parcelArray = [
   {name: '30/30/30/30', id: 'prcl_1fc93fe8bd5c4a2885944af6156b18a5'},
@@ -196,10 +219,12 @@ function shp() {
       return listPrompt(customsInfoArray, 'customsInfo');
     }).then(result => {
       resultsArray.push(result);
-      shpInput['from_address'] = { id: resultsArray[0]['id'] };
-      shpInput['to_address'] = { id: resultsArray[1]['id'] };
+      shpInput['from_address'] = (resultsArray[0]['street1']) ? resultsArray[0] : { id: resultsArray[0]['id'] };
+      shpInput['to_address'] = (resultsArray[1]['street1']) ? resultsArray[1] : { id: resultsArray[1]['id'] };
       shpInput['parcel'] = { id: resultsArray[2]['id'] };
       shpInput['customs_info'] = { id: resultsArray[3]['id'] };
+      // DEV ONLY
+      console.log(shpInput);
       let shipment = new api.Shipment(shpInput);
       return shipment.save();
     }).then(shp => {
