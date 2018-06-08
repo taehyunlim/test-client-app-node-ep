@@ -72,6 +72,15 @@ const addrArray = [
     country: "ZA",
     phone: '',
   },
+  {
+    name: 'Park South (NY)',
+    street1: "125 E 27th St",
+    street2: '',
+    city: "New York",
+    state: 'NY',
+    zip: "10016",
+    country: "US",
+  }
 ];
 const parcelArray = [
   {name: '30/30/30/30', id: 'prcl_1fc93fe8bd5c4a2885944af6156b18a5'},
@@ -223,12 +232,13 @@ function shp() {
       shpInput['to_address'] = (resultsArray[1]['street1']) ? resultsArray[1] : { id: resultsArray[1]['id'] };
       shpInput['parcel'] = { id: resultsArray[2]['id'] };
       shpInput['customs_info'] = { id: resultsArray[3]['id'] };
-      // DEV ONLY
-      console.log(shpInput);
+      // TEST MODE
+      // shpInput['option'] = { mode: 'test' };
       let shipment = new api.Shipment(shpInput);
       return shipment.save();
     }).then(shp => {
       shpId = shp.id;
+      console.log(`[shipment] Shipment ID: ${shpId}`);
       shp.rates.forEach(rate => {
         let acctName = carrierAcctName(rate);
         rates.push({
